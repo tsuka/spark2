@@ -1,11 +1,12 @@
 {
-  "name": "spark",
-  "description": "Powerful node server starter",
-  "version": "0.1.2",
-  "contributors": [ 
+  "name": "spark2",
+  "description": "Powerful node server starter - Fork of the original",
+  "version": "2.0.0",
+  "contributors": [
+    { "name": "Dav Glass", "email": "davglass@gmail.com" },
     { "name": "Tim Caswell", "email": "tim@sencha.com" },
     { "name": "TJ Holowaychuk", "email": "tj@sencha.com" }
   ],
-  "bin": { "spark": "./bin/spark" },
-  "engines": { "node": ">= 0.1.100" }
+  "bin": { "spark2": "./bin/spark" },
+  "engines": { "node": ">= 0.1.199" }
 }
