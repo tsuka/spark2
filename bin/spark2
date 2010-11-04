@@ -58,6 +58,7 @@ var kill;
 var force;
 var spawn;
 var pidfile;
+var accesslog;
 
 /**
  * Colored terminal output.
@@ -91,6 +92,7 @@ var usage = ''
     + '  -n, --workers NUM    Number of worker processes to spawn\n'
     + '  -I, --include PATH   Unshift the given path to require.paths\n'
     + '  --pidfile PATH       Use this file as the tmp pidfile\n'
+    + '  --accesslog PATH     Use this file to write stdout (express.logger()) data\n'
     + '  -E, --env NAME       Set environment, defaults to "development"\n'
     + '  -M, --mode NAME      Alias of -E, --env\n'
     + '  -e, --eval CODE      Evaluate the given string\n'
@@ -130,6 +132,7 @@ function colorize(str) {
     var colors = useColors
         ? { bold: 1 }
         : {};
+    str = str+'';
     return str.replace(/\[(\w+)\]\{([^}]+)\}/g, function(_, color, str){
         return '\x1B[' + colors[color] + 'm' + str +'\x1B[0m';
     });
@@ -288,11 +291,12 @@ function changeUser() {
 
 function startWorker() {
     var stdin = new net.Stream(0, 'unix');
-    stdin.addListener('data', function(json){
+    stdin.addListener('data', function(json) {
         process.sparkEnv = env = JSON.parse(json.toString());
     });
     stdin.addListener('fd', function(fd){
         var app = requireApp(getAppPath());
+        app.isChild = true;
         util.error('Spark2 server(' + process.pid + ') listening on '
             + 'http' + (env.sslKey ? 's' : '') + '://'
             + (env.host || '*') + ':' + env.port
@@ -319,7 +323,7 @@ function spawnChild() {
         process.argv[0],
         args,
         undefined,
-        [fds[1], 1, 2]
+        [fds[1], fds[2], fds[3]]
     );
 
     log('child spawned [bold]{' + child.pid + '}');
@@ -328,10 +332,43 @@ function spawnChild() {
     if (!child.stdin) {
         child.stdin = new net.Stream(fds[0], 'unix');
     }
+    if (!child.stdout) {
+        child.stdout = new net.Stream(fds[1], 'unix');
+    }
+    if (!child.stderr) {
+        child.stderr = new net.Stream(fds[2], 'unix');
+    }
 
     child.stdin.write(JSON.stringify(env), 'ascii', mainFD);
+    if (accesslog) {
+        child.stdout.addListener('data', function(data) {
+            if (verbose) {
+                util.print(data);
+            }
+            writeAccess(data);
+        });
+    }
+    child.stderr.addListener('data', function(data) {
+        if (verbose) {
+            util.print(data);
+        }
+    });
+    
 
     return child;
+}
+
+var aLog;
+
+var writeAccess = function(data) {
+    if (data) {
+        if (!aLog) {
+            aLog = fs.createWriteStream(accesslog, { flags: 'w+', encoding: 'ascii' });
+        }
+        if (aLog) {
+            aLog.write(data);
+        }
+    }
 }
 
 var childSig = function() {
@@ -367,7 +404,7 @@ var getTmpFile = function(path) {
 
 var writePid = function(path) {
     var file = getTmpFile(path);
-    fs.writeFile(file, process.pid+'', encoding='utf8');
+    fs.writeFile(file, process.pid+'', encoding='ascii');
 }
 
 var getMainPid = function(path) {
@@ -408,7 +445,8 @@ function start() {
             if (respawn) {
                 sig = 'SIGCONT';
             }
-            if (force) {
+            if (force || kill) {
+                fs.unlinkSync(getTmpFile(path));
                 kill = true;
             }
             if (kill || respawn) {
@@ -554,6 +592,9 @@ function parseArguments(args, cmd) {
                 break;
             case '--pidfile':
                 pidfile = requireArg('--pidfile');
+                break;
+            case '--accesslog':
+                accesslog = requireArg('--accesslog');
                 break;
             case '-c':
             case '--config':
