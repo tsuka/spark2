@@ -57,6 +57,7 @@ var respawn;
 var kill;
 var force;
 var spawn;
+var pidfile;
 
 /**
  * Colored terminal output.
@@ -89,6 +90,7 @@ var usage = ''
     + '  --ssl-crt PATH       SSL certificate file\n'
     + '  -n, --workers NUM    Number of worker processes to spawn\n'
     + '  -I, --include PATH   Unshift the given path to require.paths\n'
+    + '  --pidfile PATH       Use this file as the tmp pidfile\n'
     + '  -E, --env NAME       Set environment, defaults to "development"\n'
     + '  -M, --mode NAME      Alias of -E, --env\n'
     + '  -e, --eval CODE      Evaluate the given string\n'
@@ -351,6 +353,9 @@ var respawnAll = function() {
 }
 
 var getTmpFile = function(path) {
+    if (pidfile) {
+        return pidfile;
+    }
     path = path.replace(/\//g, '-').replace(/ /g, '');
     var tmpDir = process.env.TMPDIR;
     if (!tmpDir) {
@@ -546,6 +551,9 @@ function parseArguments(args, cmd) {
             case '-M':
             case '--mode':
                 env.name = requireArg('--mode');
+                break;
+            case '--pidfile':
+                pidfile = requireArg('--pidfile');
                 break;
             case '-c':
             case '--config':
