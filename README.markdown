@@ -15,18 +15,18 @@ The most useful is the "auto re-spawn children" feature. If a worker dies, spark
 You can also manage the server for hot code deployment. The original Spark had the main process listen on the app as well as the workers. Spark2's main process doesn't listen on the app, only the workers do.
 That allows you to do things like this:
 
-spark2 -n 10 &
---exit the terminal and log back in..
---Now update your source, then
-spark2 --respawn (This will respawn all the worker processes to reload the code.
+    spark2 -n 10 &
+    --exit the terminal and log back in..
+    --Now update your source, then
+    spark2 --respawn (This will respawn all the worker processes to reload the code.
 
 You can also call:
-spark2 --kill to kill the main process and it's workers.
+    spark2 --kill to kill the main process and it's workers.
 
 This can also be done from the shell by sending the right signals:
 
-kill -s SIGCONT PID (respawn all children)
-kill PID (kill)
+    kill -s SIGCONT PID (respawn all children)
+    kill PID (kill)
 
 I also fixed an issue where command line arguments are overwritten if there is a config. Now commandline arguments override the config so you can test locally with a production config.
 
@@ -47,7 +47,7 @@ Spark2 provides the following options when starting a server.
 
 ## Making an app spark compatible
 
-Any node server can be used with spark2.  All you need to do it create a file called `app.js` that exports the instance of `http.Server` or `net.Server`.
+Any node server can be used with spark2.  All you need to do it create a file called `app.js` or `server.js` that exports the instance of `http.Server` or `net.Server`.
 
 A hello-world example would look like this:
 
