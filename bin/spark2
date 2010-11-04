@@ -20,6 +20,15 @@ var child_process = require('child_process'),
     cwd = process.cwd(),
     net = require('net');
 
+
+/**
+ * Coffee script support
+ * Try to require coffee script, ignore if it fails.
+ */
+var coffee_script;
+try { coffee_script = require('coffee-script') } catch (e) {}
+
+
 /**
  * Framework version.
  */
@@ -229,8 +238,15 @@ function getAppPath() {
         } else if (exists(path + 'server.js')) {
             log('detected server.js');
             path += 'server';
+        } else if (coffee_script && exists(path + 'app.coffee')) {
+            log('detected app.coffee');
+            path += 'app';
+        } else if (coffee_script && exists(path + 'server.coffee')) {
+            log('detected server.coffee');
+            path += 'server';
+        
         } else {
-            abort('app not found, pass a module path, or create {app,server}.js');
+            abort('app not found, pass a module path, or create {app,server}.{js,coffee}');
         }
     }
 
