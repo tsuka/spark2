@@ -363,7 +363,7 @@ var aLog;
 var writeAccess = function(data) {
     if (data) {
         if (!aLog) {
-            aLog = fs.createWriteStream(accesslog, { flags: 'w+', encoding: 'ascii' });
+            aLog = fs.createWriteStream(accesslog, { flags: 'w+', encoding: 'ascii', mode: 0777 });
         }
         if (aLog) {
             aLog.write(data);
