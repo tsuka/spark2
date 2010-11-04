@@ -6,10 +6,10 @@
 var http = require('http');
 
 /**
- * `$ spark --chdir examples/config`
+ * `$ spark2 --chdir examples/config`
  * will auto-detect ./config.js and apply it.
  *
- * `$ spark --config path/to/config examples/config.app`
+ * `$ spark2 --config path/to/config examples/config.app`
  * will load the app relative to CWD, and the given config module.
  *
  * NOTE: you can use --config several times to apply different configurations

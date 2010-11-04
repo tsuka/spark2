@@ -5,4 +5,4 @@
 # Demonstrates usage of SSL support in the executable(1) binary.
 #
 
-../../bin/spark --ssl-key privatekey.pem --ssl-crt certificate.pem
+../../bin/spark2 --ssl-key privatekey.pem --ssl-crt certificate.pem

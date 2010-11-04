@@ -47,6 +47,7 @@ var verbose;
 var respawn;
 var kill;
 var force;
+var spawn;
 
 /**
  * Colored terminal output.
@@ -69,7 +70,7 @@ var env = process.sparkEnv = {
  */
 
 var usage = ''
-    + '[bold]{Usage}: spark [options]\n'
+    + '[bold]{Usage}: spark2 [options]\n'
     + '\n'
     + '[bold]{Options}:\n'
     + '  --comment            Ignored, this is to label the process in htop\n'
@@ -87,10 +88,13 @@ var usage = ''
     + '  -u, --user ID|NAME   Change user with setuid()\n'
     + '  -g, --group ID|NAME  Change group with setgid()\n'
     + '  -v, --verbose        Enable verbose output\n'
-    + '  -V, --version        Output spark version\n'
+    + '  -V, --version        Output spark2 version\n'
     + '  -K, --no-color       Suppress colored terminal output\n'
     + '  -h, --help           Outputy help information\n'
-    + '  --ENV VAL            Sets the given spark environment variable\n'
+    + '  --ENV VAL            Sets the given spark2 environment variable\n'
+    + '  --kill               Kill the currently running server\n'
+    + '  --respawn            Restart all workers on the currently running server\n'
+    + '  --force              Kill the lock file on the current server and start\n'
     ;
 
 /**
@@ -271,7 +275,7 @@ function startWorker() {
     });
     stdin.addListener('fd', function(fd){
         var app = requireApp(getAppPath());
-        util.error('Spark server(' + process.pid + ') listening on '
+        util.error('Spark2 server(' + process.pid + ') listening on '
             + 'http' + (env.sslKey ? 's' : '') + '://'
             + (env.host || '*') + ':' + env.port
             + ' in ' + env.name + ' mode');
@@ -332,7 +336,7 @@ var respawnAll = function() {
 
 var getTmpFile = function(path) {
     path = path.replace(/\//g, '-').replace(/ /g, '');
-    var file = process.env.TMPDIR + 'spark-' + path;
+    var file = process.env.TMPDIR + 'spark2-' + path;
     return file;
 }
 
@@ -359,6 +363,10 @@ function start() {
     if (exists('./config.js')) {
         log('detected config.js');
         loadConfig('./config.js');
+    }
+
+    if (!workers) {
+        abort('Must have at least one worker..');
     }
 
     // Application path
@@ -388,7 +396,6 @@ function start() {
             return;
         }
     }
-
     writePid(path);
 
     // Spawn worker processes
