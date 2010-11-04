@@ -387,7 +387,9 @@ function start() {
                 kill = true;
             }
             if (kill || respawn) {
-                process.kill(pid, sig);
+                try {
+                    process.kill(pid, sig);
+                } catch (e) {}
             }
         } else {
             abort('PID already exists for this process.. Use spark2 {--kill , --respawn, --force}');
