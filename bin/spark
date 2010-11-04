@@ -44,6 +44,10 @@ var workers = 1;
 
 var verbose;
 
+var respawn;
+var kill;
+var force;
+
 /**
  * Colored terminal output.
  */
@@ -168,6 +172,7 @@ function loadConfig(file) {
         });
     }
     parseArguments(args);
+    parseArguments(process.argv.slice(2));
 }
 
 
@@ -282,11 +287,11 @@ function spawnChild() {
     var fds = netBinding.socketpair();
     
     // Collect the child process arguments
-    var args = [__filename, '--child'];
+    var args = [process.argv[1], '--child'];
     if (comment) {
         args.push('--comment', comment);
     }
-    
+
     // Spawn the child process
     var child = child_process.spawn(
         process.argv[0],
@@ -325,6 +330,21 @@ var respawnAll = function() {
     }
 }
 
+var getTmpFile = function(path) {
+    path = path.replace(/\//g, '-').replace(/ /g, '');
+    var file = process.env.TMPDIR + 'spark-' + path;
+    return file;
+}
+
+var writePid = function(path) {
+    var file = getTmpFile(path);
+    fs.writeFile(file, process.pid+'', encoding='utf8');
+}
+
+var getMainPid = function(path) {
+    return fs.readFileSync(getTmpFile(path));
+}
+
 var children = {},
 mainFD;
 
@@ -344,8 +364,36 @@ function start() {
     // Application path
     var path = getAppPath();
 
+    if (exists(getTmpFile(path))) {
+        log(getTmpFile(path));
+        if (respawn || kill || force) {
+            var pid = parseInt(getMainPid(path)),
+                sig = 'SIGTERM';
+
+            log('PID: ' + pid);
+
+            if (respawn) {
+                sig = 'SIGCONT';
+            }
+            if (force) {
+                kill = true;
+            }
+            if (kill || respawn) {
+                process.kill(pid, sig);
+            }
+        } else {
+            abort('PID already exists for this process.. Use spark2 {--kill , --respawn, --force}');
+        }
+        if (!force) {
+            return;
+        }
+    }
+
+    writePid(path);
+
     // Spawn worker processes
     if (workers) {
+        log('starting with (' + workers + ') workers');
         if (process.version < '0.1.98' && process.version > "0.1.199") {
             abort('Cannot use workers with a version older than v0.1.98');
         }
@@ -368,6 +416,7 @@ function start() {
         // Forward signals to child processes, keeps the zombies at bay.
         ['SIGINT', 'SIGHUP', 'SIGTERM'].forEach(function(signal){
             process.addListener(signal, function() {
+                fs.unlinkSync(getTmpFile(path));
                 for (var c in children) {
                     try {
                         children[c].kill(signal);
@@ -382,7 +431,6 @@ function start() {
         process.addListener('SIGCHLD', childSig);
         process.addListener('SIGCONT', respawnAll)
 
-        return;
     }
     
     changeUser();
@@ -414,6 +462,16 @@ function parseArguments(args, cmd) {
     // Iterate
     while (args.length) {
         switch (arg = args.shift()) {
+            case '--force':
+                force = true;
+                break;
+            case '--kill':
+                kill = true;
+                break;
+            case '-R':
+            case '--respawn':
+                respawn = true;
+                break;
             case '--comment':
               comment = requireArg('--comment');
               break;
