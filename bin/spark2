@@ -336,7 +336,11 @@ var respawnAll = function() {
 
 var getTmpFile = function(path) {
     path = path.replace(/\//g, '-').replace(/ /g, '');
-    var file = process.env.TMPDIR + 'spark2-' + path;
+    var tmpDir = process.env.TMPDIR;
+    if (!tmpDir) {
+        tmpDir = '/tmp/';
+    }
+    var file = tmpDir + 'spark2-' + path;
     return file;
 }
 
