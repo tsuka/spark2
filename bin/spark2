@@ -33,7 +33,7 @@ try { coffee_script = require('coffee-script') } catch (e) {}
  * Framework version.
  */
 
-var version = '2.0.0';
+var version = '2.0.5';
 
 /**
  * Process comment.
@@ -59,6 +59,7 @@ var force;
 var spawn;
 var pidfile;
 var accesslog;
+var watch;
 
 /**
  * Colored terminal output.
@@ -108,6 +109,7 @@ var usage = ''
     + '  --kill               Kill the currently running server\n'
     + '  --respawn            Restart all workers on the currently running server\n'
     + '  --force              Kill the lock file on the current server and start\n'
+    + '  --watch              Watch the app file and restart workers if the file size or mtime changes\n'
     ;
 
 /**
@@ -229,7 +231,7 @@ function requireApp(path) {
  * @return {String}
  */
 
-function getAppPath() {
+function getAppPath(inc) {
     var path = (env.appPath || '');
     if (path[0] !== '/') {
         path = process.cwd() + '/' + path;
@@ -240,16 +242,19 @@ function getAppPath() {
         if (exists(path + 'app.js')) {
             log('detected app.js');
             path += 'app';
+            if (inc) { path += '.js'; }
         } else if (exists(path + 'server.js')) {
             log('detected server.js');
             path += 'server';
+            if (inc) { path += '.js'; }
         } else if (coffee_script && exists(path + 'app.coffee')) {
             log('detected app.coffee');
             path += 'app';
+            if (inc) { path += '.coffee'; }
         } else if (coffee_script && exists(path + 'server.coffee')) {
             log('detected server.coffee');
             path += 'server';
-        
+            if (inc) { path += '.coffee'; }
         } else {
             abort('app not found, pass a module path, or create {app,server}.{js,coffee}');
         }
@@ -411,6 +416,23 @@ var getMainPid = function(path) {
     return fs.readFileSync(getTmpFile(path));
 }
 
+var watchFile = function(cur, prev) {
+    log('Server File Changed..');
+    var s = false;
+    if (cur.size !== prev.size) {
+        log('Filesize is different');
+        s = true;
+    }
+    if (cur.mtime.getTime() !== prev.mtime.getTime()) {
+        log('mtime is different');
+        s = true;
+    }
+    if (s) {
+        log('File has changed, respawn..');
+        respawnAll();
+    }
+};
+
 var children = {},
 mainFD;
 
@@ -506,6 +528,11 @@ function start() {
     }
     
     changeUser();
+    
+    if (watch) {
+        log('Watching file: ' + getAppPath(true));
+        fs.watchFile(getAppPath(true), watchFile);
+    }
 }
 
 /**
@@ -534,6 +561,9 @@ function parseArguments(args, cmd) {
     // Iterate
     while (args.length) {
         switch (arg = args.shift()) {
+            case '--watch':
+                watch = true;
+                break;
             case '--force':
                 force = true;
                 break;
