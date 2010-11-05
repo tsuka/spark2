@@ -340,14 +340,14 @@ function spawnChild() {
     }
 
     child.stdin.write(JSON.stringify(env), 'ascii', mainFD);
-    if (accesslog) {
-        child.stdout.addListener('data', function(data) {
-            if (verbose) {
-                util.print(data);
-            }
+    child.stdout.addListener('data', function(data) {
+        if (verbose) {
+            util.print(data);
+        }
+        if (accesslog) {
             writeAccess(data);
-        });
-    }
+        }
+    });
     child.stderr.addListener('data', function(data) {
         if (verbose) {
             util.print(data);

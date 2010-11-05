@@ -30,6 +30,14 @@ This can also be done from the shell by sending the right signals:
 
 I also fixed an issue where command line arguments are overwritten if there is a config. Now commandline arguments override the config so you can test locally with a production config.
 
+stdout/stderror of the worker is forwarded to the master pid.
+
+Simple support for access.log, just add an accesslog file pointer to the config, then apply
+
+    app.use(express.logger());
+
+stdout will autoforward from the worker to the master process and write the result to the provided file.
+
 ## Features
 
 Spark2 provides the following options when starting a server.
