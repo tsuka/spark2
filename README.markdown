@@ -38,6 +38,13 @@ Simple support for access.log, just add an accesslog file pointer to the config,
 
 stdout will autoforward from the worker to the master process and write the result to the provided file.
 
+Watch file (for development)
+
+    spark2 -v -E development -n 1 --watch
+
+This will listen with `fs.watchFile` on the {app,server}.{js,coffee} file that started the process. If the mtime or the file size changes, it will respawn all the workers. Basically means that you save the app js file and the children will respawn so you can just refresh the page.
+This works pretty well since the main process file doesn't start the "app", it just starts the children and they control the app.
+
 ## Features
 
 Spark2 provides the following options when starting a server.
