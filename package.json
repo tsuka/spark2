@@ -1,7 +1,7 @@
 {
     "name": "spark2",
     "description": "A more powerful node server starter - Fork of the original",
-    "version": "2.0.4",
+    "version": "2.0.5",
     "author": "Dav Glass <davglass@gmail.com>",
     "bugs": { "web" : "http://github.com/davglass/spark2/issues" },
     "contributors": [
