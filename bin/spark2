@@ -468,6 +468,9 @@ function start() {
                 sig = 'SIGTERM';
 
             log('PID: ' + pid);
+            if (isNaN(pid)) {
+                force = true;
+            }
 
             if (respawn) {
                 sig = 'SIGCONT';
@@ -488,7 +491,6 @@ function start() {
             return;
         }
     }
-    writePid(path);
 
     // Spawn worker processes
     if (workers) {
@@ -498,6 +500,9 @@ function start() {
         }
 
         var afNum = (netBinding.isIP(env.host) == 6) ? 6 : 4;
+        if (env.host && (netBinding.isIP(env.host) === 0)) {
+            throw new Error('--host must be an IP Address');
+        }
         var fd = netBinding.socket('tcp' + afNum);
         netBinding.bind(fd, env.port, env.host);
         netBinding.listen(fd, 128);
@@ -538,6 +543,7 @@ function start() {
         log('Watching file: ' + getAppPath(true));
         fs.watchFile(getAppPath(true), { interval: 100 }, watchFile);
     }
+    writePid(path);
 }
 
 /**
