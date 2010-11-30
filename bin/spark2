@@ -382,9 +382,9 @@ var writeAccess = function(data) {
 }
 
 var childSig = function() {
-    log('Child Died, respawning...');
     for (var i in children) {
         if (!children[i].pid) {
+            log('Child Died (' + i + '), respawning...');
             delete children[i];
             var c = spawnChild();
             children[c.pid] = c;
@@ -422,18 +422,15 @@ var getMainPid = function(path) {
 }
 
 var watchFile = function(cur, prev) {
-    log('Server File Changed..');
-    var s = false;
+    var reason;
     if (cur.size !== prev.size) {
-        log('Filesize is different');
-        s = true;
+        reason = 'Filesize is different';
     }
     if (cur.mtime.getTime() !== prev.mtime.getTime()) {
-        log('mtime is different');
-        s = true;
+        reason = 'mtime is different';
     }
-    if (s) {
-        log('File has changed, respawn..');
+    if (reason) {
+        log('File has changed (' + reason +  '), respawning... ');
         respawnAll();
     }
 };
@@ -540,8 +537,15 @@ function start() {
     changeUser();
     
     if (watch) {
-        log('Watching file: ' + getAppPath(true));
-        fs.watchFile(getAppPath(true), { interval: 100 }, watchFile);
+        var cmd = 'find ' + watch + ' -name "*.js" -o -name "*.coffee"';
+        log('find: ' + cmd);
+        child_process.exec(cmd, function (error, out) {
+            var files = out.trim().split("\n");
+            files.forEach(function(file) {
+                log('Watching file: ' + file);
+                fs.watchFile(file, { interval: 100 }, watchFile);
+            });
+        });
     }
     writePid(path);
 }
@@ -561,7 +565,10 @@ function parseArguments(args, cmd) {
      * @return {String}
      */
 
-    function requireArg(prefix) {
+    function requireArg(prefix, def) {
+        if (!args.length && def) {
+            args.push(def);
+        }
         if (args.length) {
             return args.shift();
         } else {
@@ -573,7 +580,7 @@ function parseArguments(args, cmd) {
     while (args.length) {
         switch (arg = args.shift()) {
             case '--watch':
-                watch = true;
+                watch = requireArg('--watch', cwd);
                 break;
             case '--force':
                 force = true;
