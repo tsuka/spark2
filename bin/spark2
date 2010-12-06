@@ -191,6 +191,11 @@ function loadConfig(file) {
             if (typeof val !== 'boolean') {
                 args.push(val);
             }
+            if (key === '--watch') {
+                if (val && typeof val === 'boolean') {
+                    args.push(cwd);
+                }
+            }
         });
     }
     parseArguments(args);
@@ -348,7 +353,6 @@ function spawnChild() {
     if (!child.stderr) {
         child.stderr = new net.Stream(fds[2], 'unix');
     }
-
     child.stdin.write(JSON.stringify(env), 'ascii', mainFD);
     child.stdout.addListener('data', function(data) {
         if (verbose) {
