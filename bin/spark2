@@ -18,7 +18,12 @@ var child_process = require('child_process'),
     util = require(process.binding('natives').util ? 'util' : 'sys'),
     fs = require('fs'),
     cwd = process.cwd(),
-    net = require('net');
+    net = require('net'),
+    data = {
+        start: null,
+        children: 0,
+        errors: []
+    };
 
 
 /**
@@ -315,6 +320,7 @@ function startWorker() {
             + 'http' + (env.sslKey ? 's' : '') + '://'
             + (env.host || '*') + ':' + env.port
             + ' in ' + env.name + ' mode');
+
         enableSSL(app, env);
         app.listenFD(fd);
     });
@@ -322,9 +328,13 @@ function startWorker() {
 
 }
 
+
 function spawnChild() {
+    data.children++;
     // Create an unnamed unix socket to pass the fd to the child.
     var fds = netBinding.socketpair();
+    var sFds = [fds[1], fds[2], fds[3]];
+    //var sFds = [-1, -1, -1];
 
     // Collect the child process arguments
     var args = [process.argv[1], '--child'];
@@ -340,7 +350,7 @@ function spawnChild() {
         process.argv[0],
         args,
         undefined,
-        [fds[1], fds[2], fds[3]]
+        sFds
     );
 
     log('child spawned [bold]{' + child.pid + '}');
@@ -355,18 +365,21 @@ function spawnChild() {
     if (!child.stderr) {
         child.stderr = new net.Stream(fds[2], 'unix');
     }
+
+    child.stdspark = new net.Stream(fds[3], 'unix');
+
     child.stdin.write(JSON.stringify(env), 'ascii', mainFD);
-    child.stdout.addListener('data', function(data) {
+    child.stdout.addListener('data', function(d) {
         if (verbose) {
-            util.print(data);
+            util.print(d);
         }
         if (accesslog) {
-            writeAccess(data);
+            writeAccess(d);
         }
     });
-    child.stderr.addListener('data', function(data) {
+    child.stderr.addListener('data', function(d) {
         if (verbose) {
-            util.print(data);
+            util.print(d);
         }
     });
 
@@ -391,8 +404,28 @@ var childSig = function() {
     for (var i in children) {
         if (!children[i].pid) {
             log('Child Died (' + i + '), respawning...');
-            delete children[i];
+            children[i].stderr.destroy();
+            children[i].stdout.destroy();
+            children[i].stdin.destroy();
+            children[i].stdspark.destroy();
+            children[i].fds.forEach(function(i) {
+                /**
+                * This is a dirty, dirty hack.
+                * It appears that if you create a child process with customFD's
+                * The underlying code gives new file descriptors, but doesn't 
+                * give us access to them. It only gives us the # back.
+                * So we have to walk through the file descriptors and create a new stream
+                * then destroy that stream to get rid of the hanging descriptors
+                * Or will will get this error
+                * readpipe(): Too many open files
+                */
+                try {
+                    var s = new net.Stream(i, 'unix');
+                    s.destroy();
+                } catch (e) {}
+            });
             var c = spawnChild();
+            delete children[i];
             children[c.pid] = c;
         }
     }
@@ -444,11 +477,17 @@ var watchFile = function(cur, prev) {
 var children = {},
 mainFD;
 
+
 /**
  * Start the process.
  */
 
 function start() {
+    data.start = new Date();
+    process.on('uncaughtException', function(e) {
+        data.errors.push(e.message)
+    });
+
     log('starting');
 
     // Detect config.js
@@ -470,7 +509,6 @@ function start() {
             var pid = parseInt(getMainPid(path)),
                 sig = 'SIGTERM';
 
-            log('PID: ' + pid);
             if (isNaN(pid)) {
                 force = true;
             }
@@ -704,3 +742,4 @@ function parseArguments(args, cmd) {
 
 // Parse cli arguments
 parseArguments(process.argv.slice(2), 'start');
+
