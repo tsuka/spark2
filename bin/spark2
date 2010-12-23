@@ -500,11 +500,11 @@ var showInternalStatus = function() {
         str.push('   Current children: ' + Object.keys(children).length);
         str.push('   Total # of spawned children: ' + data.children);
         str.push('   Total # of open FDs: ' + d.open);
-        if (d.type.pipe) {
-            str.push('   Total # of open pipes: ' + d.type.pipe);
+        if (d.types.pipe) {
+            str.push('   Total # of open pipes: ' + d.types.pipe);
         }
-        if (d.type.fifo) {
-            str.push('   Total # of open pipes(FIFO): ' + d.type.fifo);
+        if (d.types.fifo) {
+            str.push('   Total # of open pipes(FIFO): ' + d.types.fifo);
         }
         str.push('   Started: ' + data.start);
         str.push('   Now    : ' + new Date());
