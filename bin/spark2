@@ -61,6 +61,7 @@ var verbose;
 var respawn;
 var kill;
 var force;
+var status;
 var spawn;
 var pidfile;
 var accesslog;
@@ -117,6 +118,7 @@ var usage = ''
     + '  --respawn            Restart all workers on the currently running server\n'
     + '  --force              Kill the lock file on the current server and start\n'
     + '  --watch              Watch the app file and restart workers if the file size or mtime changes\n'
+    + '  --status             Report status information about this spark2 process\n'
     ;
 
 /**
@@ -443,6 +445,7 @@ var getTmpFile = function(path) {
         return pidfile;
     }
     path = path.replace(/\//g, '-').replace(/ /g, '');
+    //path = process.pid +'';
     var tmpDir = process.env.TMPDIR;
     if (!tmpDir) {
         tmpDir = '/tmp/';
@@ -477,6 +480,41 @@ var watchFile = function(cur, prev) {
 var children = {},
 mainFD;
 
+var showStatus = function(pid) {
+    process.kill(pid, 'SIGUSR1');
+    setTimeout(function() {
+        var data = fs.readFileSync('./spark2-status.log', 'utf8');
+        fs.unlinkSync('./spark2-status.log');
+        console.log(data);
+    }, 2000);
+};
+
+var showInternalStatus = function() {
+    var lsof = require('lsof');
+    var mem = process.memoryUsage();
+    var str = [];
+    lsof.counters(function(d) {
+        str.push('------------------------------------------------------------------');
+        str.push(' Showing status for spark2 process at: ' + process.pid);
+        str.push('------------------------------------------------------------------');
+        str.push('   Current children: ' + Object.keys(children).length);
+        str.push('   Total # of spawned children: ' + data.children);
+        str.push('   Total # of open FDs: ' + d.open);
+        str.push('   Total # of open pipes: ' + d.types.pipe);
+        str.push('   Started: ' + data.start);
+        str.push('   Now    : ' + new Date());
+        str.push('------------------------------------------------------------------');
+        str.push(' Memory Usage');
+        str.push('------------------------------------------------------------------');
+        for (var i in mem) {
+            str.push('  ' + i + ': ' + mem[i]);
+        }
+        str.push('------------------------------------------------------------------');
+        str.push('');
+
+        fs.writeFileSync('spark2-status.log', str.join('\n'), 'utf8');
+    });
+}
 
 /**
  * Start the process.
@@ -505,6 +543,10 @@ function start() {
 
     if (exists(getTmpFile(path))) {
         log(getTmpFile(path));
+        if (status) {
+            showStatus(parseInt(getMainPid(path)));
+            return;
+        }
         if (respawn || kill || force) {
             var pid = parseInt(getMainPid(path)),
                 sig = 'SIGTERM';
@@ -526,7 +568,7 @@ function start() {
                 } catch (e) {}
             }
         } else {
-            abort('PID already exists for this process.. Use spark2 {--kill , --respawn, --force}');
+            abort('PID already exists for this process.. Use spark2 {--kill , --respawn, --force, --status}');
         }
         if (!force) {
             return;
@@ -574,7 +616,8 @@ function start() {
         });
 
         process.addListener('SIGCHLD', childSig);
-        process.addListener('SIGCONT', respawnAll)
+        process.addListener('SIGCONT', respawnAll);
+        process.addListener('SIGUSR1', showInternalStatus);
 
     }
 
@@ -625,6 +668,9 @@ function parseArguments(args, cmd) {
         switch (arg = args.shift()) {
             case '--watch':
                 watch = requireArg('--watch', cwd);
+                break;
+            case '--status':
+                status = true;
                 break;
             case '--force':
                 force = true;

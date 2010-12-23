@@ -9,4 +9,4 @@ module.exports = http.createServer(function(req, res){
 setTimeout(function() {
     console.log('PID Crash: ' + process.pid);
     throw('Killing the PID');
-}, (parseInt(process.pid) / 5));
+}, (parseInt(process.pid) / 20));
