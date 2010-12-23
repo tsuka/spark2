@@ -45,6 +45,34 @@ Watch file (for development)
 This will listen with `fs.watchFile` on the {app,server}.{js,coffee} file that started the process. If the mtime or the file size changes, it will respawn all the workers. Basically means that you save the app js file and the children will respawn so you can just refresh the page.
 This works pretty well since the main process file doesn't start the "app", it just starts the children and they control the app.
 
+## Process Status Checking
+
+As of 2.0.10, spark2 has some status checking built in. Once you start a `spark2` process, you can 
+reenter that directory and execute `spark2 --status`. This will show sometime like this:
+
+    ------------------------------------------------------------------
+     Showing status for spark2 process at: 21773
+    ------------------------------------------------------------------
+       Current children: 10
+       Total # of spawned children: 10
+       Total # of open FDs: 67
+       Total # of open pipes(FIFO): 26
+       Started: Thu Dec 23 2010 21:38:35 GMT+0000 (UTC)
+       Now    : Thu Dec 23 2010 21:46:45 GMT+0000 (UTC)
+    ------------------------------------------------------------------
+     Memory Usage
+    ------------------------------------------------------------------
+      rss: 9568256
+      vsize: 639512576
+      heapTotal: 4704448
+      heapUsed: 2594328
+    ------------------------------------------------------------------
+
+I fixed a major bug in this release that was not freeing up file descriptors when a child died. I added
+this status message so you can track not only the memory of the main process (doesn't include children yet)
+and you can see the "open file descriptors" as well as the open pipes. This # will normally be around 3 times
+the number of workers you have configured. (stdin, stdout, stderr of all workers)
+
 ## Features
 
 Spark2 provides the following options when starting a server.
