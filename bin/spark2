@@ -38,7 +38,13 @@ try { coffee_script = require('coffee-script') } catch (e) {}
  * Framework version.
  */
 
-var version = '2.0.5';
+var showVersion = function() {
+    var path = require('path');
+    var json = path.join(__dirname, '../', 'package.json');
+    json = fs.readFileSync(json, encoding='utf8');
+    json = JSON.parse(json);
+    abort(json.version);
+}
 
 /**
  * Process comment.
@@ -753,7 +759,7 @@ function parseArguments(args, cmd) {
                 break;
             case '-V':
             case '--version':
-                abort(version);
+                showVersion();
                 break;
             case '-K':
             case '--no-color':
