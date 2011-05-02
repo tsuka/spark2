@@ -1,7 +1,7 @@
 {
     "name": "spark2",
     "description": "A more powerful node server starter - Fork of the original",
-    "version": "2.0.11",
+    "version": "2.0.12",
     "author": "Dav Glass <davglass@gmail.com>",
     "bugs": { "web" : "http://github.com/davglass/spark2/issues" },
     "contributors": [
@@ -15,6 +15,7 @@
     ],
     "bin": { "spark2": "./bin/spark2" },
     "engines": { "node": ">= 0.1.199" },
+    "preferGlobal" : "true",
     "dependencies": {
         "lsof": ">=0.0.1"
     },    
