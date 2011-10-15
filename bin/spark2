@@ -433,7 +433,7 @@ var childSig = function() {
                 /**
                 * This is a dirty, dirty hack.
                 * It appears that if you create a child process with customFD's
-                * The underlying code gives new file descriptors, but doesn't 
+                * The underlying code gives new file descriptors, but doesn't
                 * give us access to them. It only gives us the # back.
                 * So we have to walk through the file descriptors and create a new stream
                 * then destroy that stream to get rid of the hanging descriptors
@@ -648,7 +648,9 @@ function start() {
     changeUser();
 
     if (watch) {
-        var cmd = 'find ' + watch + ' -name "*.js" -o -name "*.coffee"';
+        var watchExts = ['js', 'coffee', 'tjs'];
+        var cmd = 'find ' + watch + ' ' +
+          watchExts.map(function(s){return "-name \"*." + s + "\""}).join(" -o ");
         log('find: ' + cmd);
         child_process.exec(cmd, function (error, out) {
             var files = out.trim().split("\n");
